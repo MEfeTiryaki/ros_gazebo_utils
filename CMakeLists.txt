@@ -14,6 +14,7 @@ COMPONENTS
   urdf
   xacro
   tf
+  ros_node_utils
 )
 
 catkin_package(
@@ -27,6 +28,7 @@ catkin_package(
     urdf
     xacro
     tf
+    ros_node_utils
 )
 
 include_directories(

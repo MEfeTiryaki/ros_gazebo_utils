@@ -19,4 +19,8 @@
   <depend>tf</depend>
 
 
+  <depend>ros_node_utils</depend>
+
+
+
 </package>
