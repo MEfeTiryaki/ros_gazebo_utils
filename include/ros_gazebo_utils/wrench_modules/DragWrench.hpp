@@ -16,6 +16,8 @@
 
 #include "ros_gazebo_utils/wrench_modules/WrenchModuleBase.hpp"
 
+#include <std_msgs/Float64.h>
+
 namespace gazebo {
 namespace wrench {
 
@@ -33,7 +35,8 @@ class DragWrench : public WrenchModuleBase
         density_(-1.0),
         incidenceAngle_(0.0),
         rotationAngle_(0.0),
-        dragModel_(1)
+        dragModel_(1),
+        temperature_(36)
   {
     this->name_ = "drag";
   }
@@ -56,18 +59,17 @@ class DragWrench : public WrenchModuleBase
     paramRead(this->nodeHandle_, "/physics/fluid/fluid_viscosity", viscosity_);
     paramRead(this->nodeHandle_, "/physics/fluid/drag_position", origin_);
     paramRead(this->nodeHandle_, "/physics/fluid/drag/drag_model", dragModel_);
+    paramRead(this->nodeHandle_, "/physics/temperature", temperature_);
 
-    double T = 36 + 273; // K
-    // https://www.engineersedge.com/physics/water__density_viscosity_specific_weight_13146.htm
-    double mu =  2.414e-5* pow (10,247.8/(T-140));
-    C_D_ = 6 * M_PI * radius_* mu ;
-    C_L_ = c_L_(0);
-    std::cout << "Drag : "<< C_D_ << std::endl;
-
-
-
-
+    updateViscosity();
   }
+
+  void initializeSubscribers(){
+    temperatureSubscriber_ = getNodeHandle()->subscribe(
+        "/gazebo/temperature", 1, &DragWrench::temperatureCallback,
+        this);
+  }
+
 
   virtual void advance(double dt) override
   {
@@ -119,6 +121,7 @@ class DragWrench : public WrenchModuleBase
 
   }
 
+protected:
   void calculateDragForceCoefficient()
   {
     //reynold_ = density_*
@@ -143,9 +146,23 @@ class DragWrench : public WrenchModuleBase
     C_R_z_ = c_R_z_(0);
   }
 
+ void updateViscosity(){
+   // https://www.engineersedge.com/physics/water__density_viscosity_specific_weight_13146.htm
+   double mu =  2.414e-5* pow (10,247.8/((temperature_+273)-140));
+   C_D_ = 6 * M_PI * radius_* mu ;
+   C_L_ = c_L_(0);
+   // std::cout << "Drag : "<< C_D_ << std::endl;
+ }
+
+ // CALLBACK
+ virtual void temperatureCallback(const std_msgs::Float64 &msg) {
+   temperature_ = msg.data;
+   updateViscosity();
+ }
 
  protected:
 
+  double temperature_;
   double density_;
   double viscosity_;
   Eigen::VectorXd c_D_;
@@ -165,6 +182,10 @@ class DragWrench : public WrenchModuleBase
   double rotationAngle_;
 
   int dragModel_;
+
+
+
+  ros::Subscriber temperatureSubscriber_;
 };
 
 }  // namespace wrench
