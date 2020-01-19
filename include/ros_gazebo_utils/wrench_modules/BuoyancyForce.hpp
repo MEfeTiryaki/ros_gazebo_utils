@@ -50,7 +50,6 @@ class BuoyancyForce : public WrenchModuleBase
     paramRead(this->nodeHandle_, "/physics/shape/volume", volume_);
     paramRead(this->nodeHandle_, "/physics/fluid/fluid_density", fluidDensity_);
     paramRead(this->nodeHandle_, "/physics/fluid/bouyancy_position", origin_);
-
   }
 
 

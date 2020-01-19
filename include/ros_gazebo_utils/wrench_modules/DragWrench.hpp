@@ -46,6 +46,7 @@ class DragWrench : public WrenchModuleBase
 
   virtual void readParameters() override
   {
+    paramRead(this->nodeHandle_, "/physics/shape/radius", radius_);
     paramRead(this->nodeHandle_, "/physics/fluid/drag/C_D", c_D_);
     paramRead(this->nodeHandle_, "/physics/fluid/drag/C_L", c_L_);
     paramRead(this->nodeHandle_, "/physics/fluid/drag/C_P", c_P_);
@@ -55,6 +56,15 @@ class DragWrench : public WrenchModuleBase
     paramRead(this->nodeHandle_, "/physics/fluid/fluid_viscosity", viscosity_);
     paramRead(this->nodeHandle_, "/physics/fluid/drag_position", origin_);
     paramRead(this->nodeHandle_, "/physics/fluid/drag/drag_model", dragModel_);
+
+    double T = 36 + 273; // K
+    // https://www.engineersedge.com/physics/water__density_viscosity_specific_weight_13146.htm
+    double mu =  2.414e-5* pow (10,247.8/(T-140));
+    C_D_ = 6 * M_PI * radius_* mu ;
+    C_L_ = c_L_(0);
+    std::cout << "Drag : "<< C_D_ << std::endl;
+
+
 
 
   }
@@ -81,12 +91,7 @@ class DragWrench : public WrenchModuleBase
         std::cout << "_____________________________ " << std::endl;
         */
 
-        if(dragModel_==1){
-          force = -1 * c_D_(0) * linearSpeed * velocityDirection;
-        }else if(dragModel_==2){
-          force = -1 * c_D_(1) * linearSpeed * linearSpeed * velocityDirection;
-          force += -1 * C_L_ * linearSpeed *  lateralDirection;
-        }
+        force = -1 * C_D_ * linearSpeed * velocityDirection;
 
         //torque = -1 * C_P_ * linearSpeed * zDirection.cross(velocityDirection);
       }
@@ -125,9 +130,6 @@ class DragWrench : public WrenchModuleBase
           (this->link_->getLinearVelocityOfBaseInBaseFrame().normalized()).dot(zDirection));
     }
 
-    C_D_ = c_D_(0);
-
-    C_L_ = c_L_(0);
 
     //C_P_ = c_P_(0) * incidenceAngle_ * incidenceAngle_ + c_P_(1) * incidenceAngle_ + c_P_(2);
 
@@ -152,6 +154,7 @@ class DragWrench : public WrenchModuleBase
   Eigen::VectorXd c_R_x_;
   Eigen::VectorXd c_R_z_;
 
+  double radius_;
   double C_D_;
   double C_L_;
   double C_P_;
