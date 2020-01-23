@@ -17,6 +17,7 @@
 #include "ros_gazebo_utils/wrench_modules/WrenchModuleBase.hpp"
 
 #include <std_msgs/Float64.h>
+#include <std_msgs/Float64MultiArray.h>
 
 namespace gazebo {
 namespace wrench {
@@ -62,11 +63,16 @@ class DragWrench : public WrenchModuleBase
     paramRead(this->nodeHandle_, "/physics/temperature", temperature_);
 
     updateViscosity();
+
+    fluidVelocity_ = Eigen::Vector3d::Zero() ;
   }
 
   void initializeSubscribers(){
     temperatureSubscriber_ = getNodeHandle()->subscribe(
         "/gazebo/temperature", 1, &DragWrench::temperatureCallback,
+        this);
+    fluidVelocitySubscriber_ = getNodeHandle()->subscribe(
+        "/gazebo/fluid_velocity", 1, &DragWrench::fluidVelocityCallback,
         this);
   }
 
@@ -75,27 +81,27 @@ class DragWrench : public WrenchModuleBase
   {
     {
       calculateDragForceCoefficient();
-      double linearSpeed = this->link_->getLinearVelocityOfBaseInBaseFrame().norm();
+      double relativeLinearSpeed = ( this->link_->getLinearVelocityOfBaseInBaseFrame()-fluidVelocity_).norm();
       Eigen::Vector3d force = Eigen::Vector3d::Zero();
       Eigen::Vector3d torque = Eigen::Vector3d::Zero();
-      if (linearSpeed != 0) {
-        auto velocityDirection = this->link_->getLinearVelocityOfBaseInBaseFrame().normalized();
+      if (relativeLinearSpeed != 0) {
+        auto relativeVelocityDirection = (this->link_->getLinearVelocityOfBaseInBaseFrame()-fluidVelocity_).normalized();
 
         Eigen::Vector3d headingDirection =  Eigen::Vector3d::UnitZ();
-        Eigen::Vector3d lateralDirection =  (velocityDirection.cross(headingDirection).
-                                        cross(velocityDirection)).normalized();
+        Eigen::Vector3d lateralDirection =  (relativeVelocityDirection.cross(headingDirection).
+                                        cross(relativeVelocityDirection)).normalized();
 
         /*
-        std::cout << "linearSpeed : " << linearSpeed << std::endl;
+        std::cout << "relativeLinearSpeed : " << relativeLinearSpeed << std::endl;
         std::cout << "angleOfAttack : " << asin((velocityDirection.cross(headingDirection)).norm()) << std::endl;
         std::cout << "v : " << velocityDirection.transpose() << std::endl;
         std::cout << "l : " << lateralDirection.transpose() << std::endl;
         std::cout << "_____________________________ " << std::endl;
         */
 
-        force = -1 * C_D_ * linearSpeed * velocityDirection;
+        force = -1 * C_D_ * relativeLinearSpeed * relativeVelocityDirection;
 
-        //torque = -1 * C_P_ * linearSpeed * zDirection.cross(velocityDirection);
+        //torque = -1 * C_P_ * relativeLinearSpeed * zDirection.cross(relativeVelocityDirection);
       }
 
       force_ = force;
@@ -160,6 +166,10 @@ protected:
    updateViscosity();
  }
 
+ virtual void fluidVelocityCallback(const std_msgs::Float64MultiArray &msg) {
+   fluidVelocity_ = Eigen::Vector3d(msg.data[0],msg.data[1],msg.data[2]);
+ }
+
  protected:
 
   double temperature_;
@@ -183,9 +193,11 @@ protected:
 
   int dragModel_;
 
+  Eigen::Vector3d fluidVelocity_;
 
 
   ros::Subscriber temperatureSubscriber_;
+  ros::Subscriber fluidVelocitySubscriber_;
 };
 
 }  // namespace wrench
