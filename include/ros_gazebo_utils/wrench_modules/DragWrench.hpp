@@ -99,7 +99,13 @@ class DragWrench : public WrenchModuleBase
         std::cout << "_____________________________ " << std::endl;
         */
 
-        force = -1 * C_D_ * relativeLinearSpeed * relativeVelocityDirection;
+        double Re = relativeLinearSpeed * 2 *radius_* fluidDensity_ / viscosity_;
+        double Area = M_PI * radius_* radius_;
+        C_D_ = 24.0/Re + 6.0/(1.0+sqrt(Re)) + 0.4;
+
+        force = -1 * C_D_/2 * fluidDensity_* Area * relativeLinearSpeed* relativeLinearSpeed * relativeVelocityDirection;
+
+        // force = -1 * C_D_ * relativeLinearSpeed * relativeVelocityDirection;
 
         //torque = -1 * C_P_ * relativeLinearSpeed * zDirection.cross(relativeVelocityDirection);
       }
@@ -154,8 +160,13 @@ protected:
 
  void updateViscosity(){
    // https://www.engineersedge.com/physics/water__density_viscosity_specific_weight_13146.htm
-   double mu =  2.414e-5* pow (10,247.8/((temperature_+273)-140));
-   C_D_ = 6 * M_PI * radius_* mu ;
+   viscosity_ =  2.414e-5* pow (10,247.8/((temperature_+273)-140));
+
+   fluidDensity_ = 999.85308 + 6.32693*pow(10,-2)*temperature_
+     - 8.523829*pow(10,-3) *temperature_*temperature_
+     + 6.943248*pow(10,-5) *temperature_*temperature_*temperature_
+     - 3.821216*pow(10,-7) *temperature_*temperature_*temperature_*temperature_;
+   // C_D_ = 6 * M_PI * radius_* mu ;
    C_L_ = c_L_(0);
    // std::cout << "Drag : "<< C_D_ << std::endl;
  }
@@ -174,6 +185,7 @@ protected:
 
   double temperature_;
   double density_;
+  double fluidDensity_;
   double viscosity_;
   Eigen::VectorXd c_D_;
   Eigen::VectorXd c_L_;
