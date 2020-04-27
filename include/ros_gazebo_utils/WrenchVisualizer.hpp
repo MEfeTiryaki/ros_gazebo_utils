@@ -91,14 +91,18 @@ class WrenchVisualizer : public ros_node_utils::RosNodeModuleBase
     marker.points.resize(2);
 
     for (int id = 0; id < wrenchModules_.size(); id++) {
+      // std::cout <<  wrenchModules_[id]->getName() << std::endl;
       Eigen::Vector3d origin = wrenchModules_[id]->getOrigin();
       Eigen::Quaterniond orientationWorldtoBase = wrenchModules_[id]->getOrientation();
+
 
       Eigen::Vector3d forceInBaseFrame = orientationWorldtoBase.inverse()
           * wrenchModules_[id]->getForceInWorldFrame();
       Eigen::Vector3d torqueInBaseFrame = orientationWorldtoBase.inverse()
           * wrenchModules_[id]->getTorqueInWorldFrame();
 
+      // std::cout <<  origin.transpose() << std::endl;
+      // std::cout <<  forceInBaseFrame.transpose() << std::endl;
 
       // FORCE
       marker.header.frame_id = linkNames_[id];
@@ -134,6 +138,7 @@ class WrenchVisualizer : public ros_node_utils::RosNodeModuleBase
 
       markerArray.markers.push_back(marker);
     }
+    // std::cout << "_____________________" << std::endl;
   }
   ;
 

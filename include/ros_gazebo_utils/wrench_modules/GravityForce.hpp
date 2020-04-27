@@ -52,7 +52,7 @@ class GravityForce : public WrenchModuleBase
 
   virtual void initialize() override
   {
-
+    origin_ = Eigen::Vector3d::Zero();
   }
 
   virtual void advance(double dt)
